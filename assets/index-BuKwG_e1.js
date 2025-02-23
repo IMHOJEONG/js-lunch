@@ -51,17 +51,18 @@ const IMAGE_TYPE = {
   ETC: ETC_IMG
 };
 const EATING_PLACE_TYPE = {
-  아시안: IMAGE_TYPE.ASIAN,
-  중식: IMAGE_TYPE.CHINESE,
-  일식: IMAGE_TYPE.JAPANESE,
-  한식: IMAGE_TYPE.KOREAN,
-  양식: IMAGE_TYPE.WESTERN,
-  기타: IMAGE_TYPE.ETC,
-  전체: "전체"
+  ASIAN: "아시안",
+  CHINESE: "중식",
+  JAPANESE: "일식",
+  KOREAN: "한식",
+  WESTERN: "양식",
+  ETC: "기타",
+  ALL: "전체"
 };
 const ICON_TYPE = {
   ADD_BUTTON_ICON
 };
+const getFragment = () => document.createDocumentFragment();
 const useState = (initialState = "") => {
   const state = { value: initialState };
   const stateHandler = {
@@ -76,36 +77,64 @@ const useState = (initialState = "") => {
   const stateProxy = new Proxy(state, stateHandler);
   const setState = (newState) => {
     stateProxy.value = newState;
-    console.log(stateProxy.value);
   };
   return [stateProxy, setState];
 };
+const createHeaderState = (initialState = "") => {
+  const state = { value: initialState };
+  const listeners = [];
+  const addListener = (listener) => {
+    listeners.push(listener);
+  };
+  const notifyListeners = () => {
+    listeners.forEach((listener) => listener(state.value));
+  };
+  return {
+    getState() {
+      return state.value;
+    },
+    addListener,
+    setState(newState) {
+      const prevState = state.value;
+      if (prevState !== newState) {
+        state.value = newState;
+        notifyListeners();
+      }
+    }
+  };
+};
 const Header = () => {
-  const [state, setState] = useState(false);
-  const container = document.createElement("header");
+  const state = createHeaderState(true);
   const handleClick = (event) => {
     if (event.target && event.target.closest(".drawer-button")) {
-      setState(!state.value);
-      render();
+      state.setState(!state.getState());
     }
   };
   const render = () => {
-    const html = (
-      /* html */
-      `
-      <div>
-      점심 뭐먹지
-      </div>
-      <div data-drawer-state="${state.value}" class="drawer-button"
-      >
-          <img src=${ICON_TYPE.ADD_BUTTON_ICON} alt="header-drawer-img"/>
-      </div>
-    `
-    );
-    container.innerHTML = html;
-    container.addEventListener("click", handleClick);
+    const drawerButton = document.querySelector(".drawer-button");
+    if (drawerButton) {
+      drawerButton.setAttribute("data-drawer-state", state.getState());
+    }
   };
-  render();
+  state.addListener(() => {
+    render();
+  });
+  const container = getFragment();
+  const header = document.createElement("header");
+  const html = (
+    /* html */
+    `
+    <div>
+    점심 뭐먹지
+    </div>
+    <div data-drawer-state="${state.getState()}" class="drawer-button">
+      <img src=${ICON_TYPE.ADD_BUTTON_ICON} alt="header-drawer-img"/>
+    </div>
+  `
+  );
+  header.innerHTML = html;
+  header.addEventListener("click", handleClick);
+  container.appendChild(header);
   return container;
 };
 const EatingPlaceListItem = ({ imageType, title, timeToGo, description }) => {
@@ -133,36 +162,42 @@ const EatingPlaceListItem = ({ imageType, title, timeToGo, description }) => {
 };
 const eatingPlaceListData = [
   {
+    type: EATING_PLACE_TYPE.CHINESE,
     imageType: IMAGE_TYPE.CHINESE,
     title: "현지 느낌 그대로 중식당",
     timeToGo: "2분 내 도착 가능",
     description: "풍미 가득한 정통 중화요리와 시그니처 요리를 경험하세요"
   },
   {
+    type: EATING_PLACE_TYPE.JAPANESE,
     imageType: IMAGE_TYPE.JAPANESE,
     title: "신선한 초밥과 일식 요리",
     timeToGo: "4분이면 도착!",
     description: "싱싱한 해산물과 정성 가득한 일본 요리를 제공합니다"
   },
   {
+    type: EATING_PLACE_TYPE.ETC,
     imageType: IMAGE_TYPE.ETC,
     title: "색다른 미식 탐험",
     timeToGo: "3분 거리",
     description: "이국적인 메뉴와 독창적인 맛을 즐길 수 있는 곳"
   },
   {
+    type: EATING_PLACE_TYPE.ASIAN,
     imageType: IMAGE_TYPE.ASIAN,
     title: "정통 아시아의 맛",
     timeToGo: "도보 1분 거리",
     description: "고급 양갈비와 다채로운 아시아 요리를 한자리에서"
   },
   {
+    type: EATING_PLACE_TYPE.KOREAN,
     imageType: IMAGE_TYPE.KOREAN,
     title: "정통 한식 맛집",
     timeToGo: "5분 거리",
     description: "직접 담근 김치와 깊은 맛의 한식 요리를 맛볼 수 있는 곳"
   },
   {
+    type: EATING_PLACE_TYPE.WESTERN,
     imageType: IMAGE_TYPE.WESTERN,
     title: "분위기 좋은 서양식 레스토랑",
     timeToGo: "10분 걸려요",
@@ -191,9 +226,8 @@ const EatingPlaceList = () => {
       `
       ${eatingPlaceListData.filter((data) => {
         if (!filterState) return true;
-        const type = EATING_PLACE_TYPE[filterState];
-        if (type === "전체") return true;
-        return EATING_PLACE_TYPE[filterState] === data.imageType;
+        if (filterState === "전체") return true;
+        return filterState === data.type;
       }).sort((data1, data2) => {
         if (radioState === "name") {
           return data1.title.localeCompare(data2.title, "ko");
@@ -265,14 +299,14 @@ const EatingPlaceSelect = () => {
     const html = (
       /* html */
       `
-      <option value="전체">먹고 싶은 음식을 골라줘</option>
-      <option value="전체">전체</option>
-      <option value="한식">한식</option>
-      <option value="중식">중식</option>
-      <option value="일식">일식</option>
-      <option value="양식">양식</option>
-      <option value="아시안">아시안</option>
-      <option value="기타">기타</option>
+      <option value=${EATING_PLACE_TYPE.ALL}>먹고 싶은 음식을 골라줘</option>
+      <option value=${EATING_PLACE_TYPE.ALL}>전체</option>
+      <option value=${EATING_PLACE_TYPE.KOREAN}>한식</option>
+      <option value=${EATING_PLACE_TYPE.CHINESE}>중식</option>
+      <option value=${EATING_PLACE_TYPE.JAPANESE}>일식</option>
+      <option value=${EATING_PLACE_TYPE.WESTERN}>양식</option>
+      <option value=${EATING_PLACE_TYPE.ASIAN}>아시안</option>
+      <option value=${EATING_PLACE_TYPE.ETC}>기타</option>
     `
     );
     container.innerHTML = html;
@@ -328,98 +362,9 @@ const Footer = () => {
   };
   return render();
 };
-const Input = ({
-  name,
-  className,
-  placeholder = "",
-  required = false
-}) => (
-  /* html */
-  `<input class=${className} name=${name}
-    required=${required || false}
-    placeholder="${placeholder || ""}" 
-/>`
-);
-const Label = ({ name, htmlFor, className }) => (
-  /* html */
-  `<label for=${htmlFor} class=${className}>${name}</label>`
-);
-const EatingPlaceDrawer = () => {
-  const container = document.createElement("div");
-  container.classList.add("eating-place-drawer");
-  container.addEventListener("drawer-state", (event) => {
-    console.log(event.detail);
-    container.classList.toggle("open");
-    render();
-  });
-  const render = () => {
-    const html = (
-      /* html */
-      `
-      <div class="eating-place-drawer-backdrop"></div>
-      <div class="eating-place-drawer-content">
-        <h3>새로운 음식점</h3>
-        <div class="category-box">
-          ${Label({
-        name: "카테고리",
-        htmlFor: "카테고리",
-        className: "required"
-      })}
-          ${Input({
-        name: "카테고리",
-        className: "",
-        placeholder: "카테고리를 입력해주세요"
-      })}
-        </div>
-        <div class="naming-box">
-          ${Label({ name: "이름", htmlFor: "이름", className: "required" })}
-          ${Input({
-        name: "이름",
-        className: "",
-        placeholder: "이름을 입력해주세요"
-      })}
-        </div>
-      
-        <div class="distance-box">
-          ${Label({
-        name: "거리(도보 이동 시간)",
-        htmlFor: "거리(도보 이동 시간)",
-        className: "required"
-      })}
-          ${Input({ name: "거리(도보 이동 시간)", className: "" })}
-        </div>
-        <div class="description-box">
-          ${Label({ name: "설명", htmlFor: "설명" })}
-          ${Input({ name: "설명", className: "", required: true })}
-          ${Label({ name: "메뉴 등 추가 정보를 입력해 주세요.", htmlFor: "설명" })}
-        </div>
-        <div class="reference-box">
-          ${Label({ name: "참고 링크", htmlFor: "참고 링크" })}
-          ${Input({ name: "참고 링크", className: "" })}
-          ${Label({ name: "매장 정보를 확인할 수 있는 링크를 입력해 주세요.", htmlFor: "참고 링크" })}
-        </div>
-      </div>
-    `
-    );
-    container.innerHTML = html;
-    return container;
-  };
-  render();
-  return container;
-};
 document.querySelector("#app");
 const config = { attributes: true, childList: true, subtree: true };
 const checkMutationChildList = (mutation) => {
-  const isDrawer = mutation.target.querySelector(".drawer-button");
-  if (isDrawer) {
-    const drawerStateEvent = new CustomEvent("drawer-state", {
-      detail: {
-        drawerState: isDrawer.dataset.drawerState
-      }
-    });
-    const drawerElement = document.querySelector(".eating-place-drawer");
-    drawerElement.dispatchEvent(drawerStateEvent);
-  }
   const isRadioBox = mutation.target.querySelector(
     ".eating-place-radio-group input[checked]"
   );
@@ -438,9 +383,6 @@ const callback = (mutationList, observer2) => {
     if (mutation.type === "childList") {
       checkMutationChildList(mutation);
     }
-    if (mutation.type === "attributes") {
-      console.log(mutation.target);
-    }
   }
 };
 const observer = new MutationObserver(callback);
@@ -450,11 +392,9 @@ window.addEventListener("load", () => {
   const header = Header();
   const main = Main();
   const footer = Footer();
-  const eatingPlaceDrawer = EatingPlaceDrawer();
   app.appendChild(header);
   app.appendChild(main);
   app.appendChild(footer);
-  app.appendChild(eatingPlaceDrawer);
 });
 window.addEventListener("unload", () => {
   observer.disconnect();

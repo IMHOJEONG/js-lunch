@@ -104,7 +104,6 @@ main {
   gap: 20px;
   margin: 2rem 3rem;
   min-height: 0;
-  overflow: auto;
 }
 
 main > .eating-place-top-section {
@@ -113,14 +112,15 @@ main > .eating-place-top-section {
   gap: 10px;
 }
 
-main .eating-place-bottom-section {
-  overflow: scroll;
-}
-
 .eating-place-top-section .eating-place-radio-group {
   display: flex;
   gap: 13px;
 }
+
+.eating-place-bottom-section {
+  overflow-y: scroll;
+}
+
 .eating-place-bottom-section .eating-place-select {
   display: flex;
 }
@@ -137,13 +137,16 @@ main .eating-place-bottom-section {
   }
 }
 
+/* .eating-place-list::-webkit-scrollbar {
+  display: none;
+} */
+
 .eating-place-list {
   display: flex;
   gap: 15px;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  overflow: scroll;
 }
 
 .eating-place-list-item img {

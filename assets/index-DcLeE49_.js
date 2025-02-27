@@ -233,11 +233,24 @@ const eatingPlaceListData = [
     referenceLink: ""
   }
 ];
-const LOCAL_STORAGE_KEY = "eatingPlaceList";
-const VALIDATION = {
+const toggleElement = (element) => {
+  const isOpen = element.dataset.open;
+  element.dataset.open = isOpen === "true" ? "false" : "true";
+};
+const clearInputData = (elements) => {
+  elements.forEach((element) => {
+    element.value = "";
+  });
+};
+const INPUT_FIELDS_VALIDATION_RANGE = {
   START: 0,
   END: 3
 };
+const checkValidationInputFields = (data) => data.slice(
+  INPUT_FIELDS_VALIDATION_RANGE.START,
+  INPUT_FIELDS_VALIDATION_RANGE.END
+).every((value) => value !== "");
+const LOCAL_STORAGE_KEY = "eatingPlaceList";
 const makeEatingPlaceList = (data) => {
   const newData = [...data];
   const imageType = Object.values(EATING_PLACE_TYPE).filter((value) => value.name === newData.at(0)).map((value) => value.image)[0];
@@ -427,8 +440,8 @@ const addEvent = () => {
     const drawerElement = document.querySelector(".eating-place-drawer");
     const drawerValue = drawerElement.dataset.result;
     const data = drawerValue.split(",");
-    const validation = data.slice(VALIDATION.START, VALIDATION.END).every((value) => value !== "");
-    if (validation) {
+    const isInputValid = checkValidationInputFields(data);
+    if (isInputValid) {
       localStorage.setItem(LOCAL_STORAGE_KEY, makeEatingPlaceList(data));
       eatingPlaceList.innerHTML = "";
       const items = filterEatingPlaceList({});
@@ -442,8 +455,11 @@ const addEvent = () => {
   });
   const eatingPlaceDrawer = document.querySelector(".eating-place-drawer");
   eatingPlaceDrawer.addEventListener(EVENT_TYPE.TO_DRAWER, () => {
-    const isOpen = eatingPlaceDrawer.dataset.open;
-    eatingPlaceDrawer.dataset.open = isOpen === "true" ? "false" : "true";
+    toggleElement(eatingPlaceDrawer);
+    const inputDataArray = eatingPlaceDrawer.querySelectorAll(
+      ".eating-place-drawer-content .data"
+    );
+    clearInputData(inputDataArray);
   });
   const eatingPlaceDetailDrawer = document.querySelector(
     ".eating-place-detail-drawer"
@@ -463,14 +479,14 @@ const createObserver = ({
   publishers,
   subscribers,
   event,
-  attributeName = ""
+  attributeName = [""]
 }) => {
   const publisherElements = publishers;
   const subscriberElements = subscribers;
   const config = { attributes: true, childList: true, subtree: true };
   const callback = (mutationList) => {
     for (const mutation of mutationList) {
-      if (mutation.type === "attributes" && mutation.attributeName === attributeName) {
+      if (mutation.type === "attributes" && attributeName.includes(mutation.attributeName)) {
         subscriberElements.forEach((subscriberElement) => {
           const customEvent = new CustomEvent(event);
           subscriberElement.dispatchEvent(customEvent);
@@ -488,31 +504,31 @@ const addObserver = () => {
     publishers: document.querySelectorAll(".eating-place-drawer"),
     subscribers: [document.querySelector(".eating-place-list")],
     event: EVENT_TYPE.ADD_TO_LIST,
-    attributeName: "data-result"
+    attributeName: ["data-result"]
   });
   createObserver({
     publishers: document.querySelectorAll(".drawer-button"),
     subscribers: [document.querySelector(".eating-place-drawer")],
     event: EVENT_TYPE.TO_DRAWER,
-    attributeName: "data-open"
+    attributeName: ["data-open"]
   });
   createObserver({
     publishers: document.querySelectorAll(".eating-place-radio-group"),
     subscribers: [document.querySelector(".eating-place-list")],
     event: EVENT_TYPE.TO_LIST,
-    attributeName: "data-radio"
+    attributeName: ["data-radio"]
   });
   createObserver({
     publishers: document.querySelectorAll(".eating-place-select"),
     subscribers: [document.querySelector(".eating-place-list")],
     event: EVENT_TYPE.TO_LIST,
-    attributeName: "data-select"
+    attributeName: ["data-select"]
   });
   createObserver({
     publishers: document.querySelectorAll(".eating-place-list-item"),
     subscribers: [document.querySelector(".eating-place-detail-drawer")],
     event: EVENT_TYPE.SHOW_DETAIL,
-    attributeName: "data-open"
+    attributeName: ["data-open"]
   });
 };
 const Input = ({
@@ -624,12 +640,10 @@ const EatingPlaceDetailDrawer = () => {
   const divElement = document.createElement("div");
   divElement.classList.add("eating-place-detail-drawer");
   const handleDelete = () => {
-    const isOpen = divElement.dataset.open;
-    divElement.dataset.open = isOpen === "true" ? "false" : "true";
+    toggleElement(divElement);
   };
   const handleClose = () => {
-    const isOpen = divElement.dataset.open;
-    divElement.dataset.open = isOpen === "true" ? "false" : "true";
+    toggleElement(divElement);
   };
   const html = (
     /* html */
